@@ -22,34 +22,37 @@
       color: #fff; 
       font-family: system-ui, -apple-system, sans-serif; 
       overflow: hidden; 
+      position: relative;
     }
 
-    /* PANTALLA DE INICIO (OVERLAY FULLSCREEN) */
+    /* PANTALLA DE INICIO (OVERLAY FULLSCREEN CORREGIDO) */
     #start-overlay {
-      position: absolute;
+      position: fixed;
       top: 0;
       left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(15, 23, 42, 0.95);
+      width: 100vw;
+      height: 100vh;
+      height: 100svh;
+      background: rgba(15, 23, 42, 0.98);
       display: flex;
       flex-direction: column;
       justify-content: center;
       align-items: center;
-      z-index: 100;
+      z-index: 9999; /* Prioridad máxima sobre el mando */
       cursor: pointer;
     }
 
     .start-btn {
       background: #38bdf8;
       color: #0f172a;
-      font-size: 1.2rem;
+      font-size: 1.3rem;
       font-weight: bold;
-      padding: 16px 32px;
+      padding: 18px 36px;
       border-radius: 30px;
       border: none;
-      box-shadow: 0 4px 15px rgba(56, 189, 248, 0.4);
+      box-shadow: 0 4px 20px rgba(56, 189, 248, 0.5);
       animation: pulse 1.5s infinite;
+      pointer-events: none; /* Deja pasar el click al overlay */
     }
 
     @keyframes pulse {
@@ -67,6 +70,10 @@
       padding: 10px 40px 30px 40px; 
       width: 100%;
       height: 100%;
+      position: absolute;
+      top: 0;
+      left: 0;
+      z-index: 1;
     }
 
     .left-zone, .right-zone { 
@@ -125,9 +132,10 @@
       cursor: pointer;
     }
 
-    .btn-ps:active {
+    .btn-ps.active {
       transform: translateY(2px);
       box-shadow: 0 1px #0f172a;
+      filter: brightness(1.2);
     }
 
     /* Colores */
@@ -141,12 +149,13 @@
       width: 18px;
       height: 18px;
       fill: #ec4899;
+      pointer-events: none;
     }
   </style>
 </head>
 <body>
 
-  <!-- Overlay para solicitar Fullscreen -->
+  <!-- Overlay de Inicio -->
   <div id="start-overlay">
     <button class="start-btn">TOCAR PARA EMPEZAR</button>
   </div>
@@ -177,56 +186,74 @@
   </div>
 
   <script>
-    // 1. LÓGICA DE FULLSCREEN Y VIBRACIÓN
-    const startOverlay = document.getElementById('start-overlay');
-
     function triggerHaptic(duration = 15) {
       if ('vibrate' in navigator) {
         navigator.vibrate(duration);
       }
     }
 
-    startOverlay.addEventListener('click', () => {
-      // Solicitar pantalla completa
+    // 1. INICIALIZACIÓN PANTALLA COMPLETA
+    const startOverlay = document.getElementById('start-overlay');
+
+    startOverlay.addEventListener('pointerdown', (e) => {
+      e.preventDefault();
+      
       const docElm = document.documentElement;
       if (docElm.requestFullscreen) {
         docElm.requestFullscreen();
-      } else if (docElm.webkitRequestFullscreen) { /* Safari / iOS */
+      } else if (docElm.webkitRequestFullscreen) {
         docElm.webkitRequestFullscreen();
-      } else if (docElm.msRequestFullscreen) {
-        docElm.msRequestFullscreen();
       }
 
       triggerHaptic(30);
       startOverlay.style.display = 'none';
     });
 
-    // 2. EVENTOS DE BOTONES
-    document.querySelectorAll('[data-btn]').forEach(btn => {
-      const name = btn.getAttribute('data-btn');
+    // 2. SISTEMA MULTITÁCTIL PARA BOTONES
+    const buttons = document.querySelectorAll('[data-btn]');
 
-      const press = (e) => {
-        e.preventDefault();
-        triggerHaptic(15);
-        console.log(`Botón Presionado: ${name}`);
-      };
+    function handleButtonTouch(e) {
+      e.preventDefault();
+      
+      // Crear un conjunto de botones activos bajo cualquier toque
+      const activeButtons = new Set();
 
-      const release = (e) => {
-        e.preventDefault();
-        console.log(`Botón Soltado: ${name}`);
-      };
+      for (let i = 0; i < e.touches.length; i++) {
+        const touch = e.touches[i];
+        const element = document.elementFromPoint(touch.clientX, touch.clientY);
+        if (element) {
+          const btn = element.closest('[data-btn]');
+          if (btn) activeButtons.add(btn);
+        }
+      }
 
-      btn.addEventListener('touchstart', press);
-      btn.addEventListener('touchend', release);
-      btn.addEventListener('mousedown', press);
-      btn.addEventListener('mouseup', release);
-    });
+      buttons.forEach(btn => {
+        const name = btn.getAttribute('data-btn');
+        if (activeButtons.has(btn)) {
+          if (!btn.classList.contains('active')) {
+            btn.classList.add('active');
+            triggerHaptic(15);
+            console.log(`Botón Presionado: ${name}`);
+          }
+        } else {
+          if (btn.classList.contains('active')) {
+            btn.classList.remove('active');
+            console.log(`Botón Soltado: ${name}`);
+          }
+        }
+      });
+    }
 
-    // 3. LÓGICA JOYSTICK
+    window.addEventListener('touchstart', handleButtonTouch, { passive: false });
+    window.addEventListener('touchmove', handleButtonTouch, { passive: false });
+    window.addEventListener('touchend', handleButtonTouch, { passive: false });
+    window.addEventListener('touchcancel', handleButtonTouch, { passive: false });
+
+    // 3. SISTEMA MULTITÁCTIL PARA JOYSTICK
     const base = document.getElementById('joystick-base');
     const stick = document.getElementById('joystick-stick');
     const maxDistance = 32;
-    let isDragging = false;
+    let joystickTouchId = null;
 
     function moveJoystick(clientX, clientY) {
       const rect = base.getBoundingClientRect();
@@ -252,16 +279,41 @@
 
     function resetJoystick() {
       stick.style.transform = `translate(0px, 0px)`;
+      joystickTouchId = null;
       console.log('Joystick -> X: 0.00, Y: 0.00');
     }
 
-    base.addEventListener('touchstart', (e) => { e.preventDefault(); triggerHaptic(10); moveJoystick(e.touches[0].clientX, e.touches[0].clientY); });
-    base.addEventListener('touchmove', (e) => { e.preventDefault(); moveJoystick(e.touches[0].clientX, e.touches[0].clientY); });
-    base.addEventListener('touchend', (e) => { e.preventDefault(); resetJoystick(); });
+    base.addEventListener('touchstart', (e) => {
+      e.preventDefault();
+      if (joystickTouchId === null) {
+        const touch = e.changedTouches[0];
+        joystickTouchId = touch.identifier;
+        triggerHaptic(10);
+        moveJoystick(touch.clientX, touch.clientY);
+      }
+    }, { passive: false });
 
-    base.addEventListener('mousedown', (e) => { isDragging = true; moveJoystick(e.clientX, e.clientY); });
-    window.addEventListener('mousemove', (e) => { if (isDragging) moveJoystick(e.clientX, e.clientY); });
-    window.addEventListener('mouseup', () => { if (isDragging) { isDragging = false; resetJoystick(); } });
+    window.addEventListener('touchmove', (e) => {
+      if (joystickTouchId !== null) {
+        for (let i = 0; i < e.touches.length; i++) {
+          if (e.touches[i].identifier === joystickTouchId) {
+            moveJoystick(e.touches[i].clientX, e.touches[i].clientY);
+            break;
+          }
+        }
+      }
+    }, { passive: false });
+
+    window.addEventListener('touchend', (e) => {
+      if (joystickTouchId !== null) {
+        for (let i = 0; i < e.changedTouches.length; i++) {
+          if (e.changedTouches[i].identifier === joystickTouchId) {
+            resetJoystick();
+            break;
+          }
+        }
+      }
+    }, { passive: false });
   </script>
 </body>
 </html>
