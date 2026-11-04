@@ -17,7 +17,7 @@
       padding: 0; 
       width: 100vw;
       height: 100vh;
-      /* Ajuste exacto para la pantalla visible en móviles (iOS/Android) */
+      /* Usa la altura exacta disponible del puerto de visión */
       height: 100svh; 
       background: #0f172a; 
       color: #fff; 
@@ -25,13 +25,14 @@
       overflow: hidden; 
     }
 
-    /* Contenedor principal sin barras ni márgenes */
+    /* Contenedor principal ajustado para elevar el mando */
     #gamepad-container { 
       display: flex;
       flex-direction: row;
       justify-content: space-between;
       align-items: center;
-      padding: 10px 40px; 
+      /* padding-bottom eleva sutilmente los controles hacia arriba */
+      padding: 10px 40px 30px 40px; 
       width: 100%;
       height: 100%;
     }
@@ -44,10 +45,10 @@
       height: 100%;
     }
 
-    /* --- JOYSTICK ANALÓGICO (IZQUIERDA) --- */
+    /* --- JOYSTICK ANALÓGICO --- */
     #joystick-base {
-      width: 130px;
-      height: 130px;
+      width: 125px;
+      height: 125px;
       background: #1e293b;
       border: 3px solid #334155;
       border-radius: 50%;
@@ -59,8 +60,8 @@
     }
 
     #joystick-stick {
-      width: 55px;
-      height: 55px;
+      width: 52px;
+      height: 52px;
       background: #38bdf8;
       border-radius: 50%;
       position: absolute;
@@ -68,22 +69,22 @@
       pointer-events: none;
     }
 
-    /* --- BOTONES PLAYSTATION (DERECHA - Compactos y pegados) --- */
+    /* --- BOTONES PLAYSTATION (Más compactos para evitar recortes) --- */
     .ps-buttons { 
       display: grid; 
-      grid-template-columns: repeat(3, 56px); 
-      grid-template-rows: repeat(3, 56px); 
+      grid-template-columns: repeat(3, 52px); 
+      grid-template-rows: repeat(3, 52px); 
       gap: 2px; 
       align-items: center;
       justify-items: center;
     }
 
     .btn-ps { 
-      width: 58px; 
-      height: 58px; 
+      width: 54px; 
+      height: 54px; 
       border-radius: 50%; 
       background: #1e293b; 
-      font-size: 1.4rem; 
+      font-size: 1.3rem; 
       font-weight: bold; 
       display: flex; 
       justify-content: center; 
@@ -97,16 +98,16 @@
       box-shadow: 0 1px #0f172a;
     }
 
-    /* Estilos y colores de los botones */
+    /* Colores */
     .btn-triangle { grid-column: 2; grid-row: 1; color: #4ade80; border: 2px solid #4ade80; }
     .btn-square   { grid-column: 1; grid-row: 2; color: #ec4899; border: 2px solid #ec4899; }
     .btn-circle   { grid-column: 3; grid-row: 2; color: #ef4444; border: 2px solid #ef4444; }
     .btn-cross    { grid-column: 2; grid-row: 3; color: #38bdf8; border: 2px solid #38bdf8; }
 
-    /* Figura vectorial limpia para el cuadrado (evita emojis en iPhone) */
+    /* Figura vectorial limpia para el cuadrado */
     .svg-icon {
-      width: 20px;
-      height: 20px;
+      width: 18px;
+      height: 18px;
       fill: #ec4899;
     }
   </style>
@@ -162,7 +163,7 @@
     // 2. LÓGICA JOYSTICK
     const base = document.getElementById('joystick-base');
     const stick = document.getElementById('joystick-stick');
-    const maxDistance = 35;
+    const maxDistance = 32;
     let isDragging = false;
 
     function moveJoystick(clientX, clientY) {
