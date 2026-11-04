@@ -17,7 +17,6 @@
       padding: 0; 
       width: 100vw;
       height: 100vh;
-      /* Usa la altura exacta disponible del puerto de visión */
       height: 100svh; 
       background: #0f172a; 
       color: #fff; 
@@ -25,13 +24,46 @@
       overflow: hidden; 
     }
 
-    /* Contenedor principal ajustado para elevar el mando */
+    /* PANTALLA DE INICIO (OVERLAY FULLSCREEN) */
+    #start-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(15, 23, 42, 0.95);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      z-index: 100;
+      cursor: pointer;
+    }
+
+    .start-btn {
+      background: #38bdf8;
+      color: #0f172a;
+      font-size: 1.2rem;
+      font-weight: bold;
+      padding: 16px 32px;
+      border-radius: 30px;
+      border: none;
+      box-shadow: 0 4px 15px rgba(56, 189, 248, 0.4);
+      animation: pulse 1.5s infinite;
+    }
+
+    @keyframes pulse {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.05); }
+      100% { transform: scale(1); }
+    }
+
+    /* CONTENEDOR PRINCIPAL DEL MANDO */
     #gamepad-container { 
       display: flex;
       flex-direction: row;
       justify-content: space-between;
       align-items: center;
-      /* padding-bottom eleva sutilmente los controles hacia arriba */
       padding: 10px 40px 30px 40px; 
       width: 100%;
       height: 100%;
@@ -69,7 +101,7 @@
       pointer-events: none;
     }
 
-    /* --- BOTONES PLAYSTATION (Más compactos para evitar recortes) --- */
+    /* --- BOTONES PLAYSTATION --- */
     .ps-buttons { 
       display: grid; 
       grid-template-columns: repeat(3, 52px); 
@@ -104,7 +136,7 @@
     .btn-circle   { grid-column: 3; grid-row: 2; color: #ef4444; border: 2px solid #ef4444; }
     .btn-cross    { grid-column: 2; grid-row: 3; color: #38bdf8; border: 2px solid #38bdf8; }
 
-    /* Figura vectorial limpia para el cuadrado */
+    /* SVG del Cuadrado */
     .svg-icon {
       width: 18px;
       height: 18px;
@@ -113,6 +145,11 @@
   </style>
 </head>
 <body>
+
+  <!-- Overlay para solicitar Fullscreen -->
+  <div id="start-overlay">
+    <button class="start-btn">TOCAR PARA EMPEZAR</button>
+  </div>
 
   <div id="gamepad-container">
     <!-- Zona Izquierda: Joystick -->
@@ -140,12 +177,37 @@
   </div>
 
   <script>
-    // 1. EVENTOS DE BOTONES
+    // 1. LÓGICA DE FULLSCREEN Y VIBRACIÓN
+    const startOverlay = document.getElementById('start-overlay');
+
+    function triggerHaptic(duration = 15) {
+      if ('vibrate' in navigator) {
+        navigator.vibrate(duration);
+      }
+    }
+
+    startOverlay.addEventListener('click', () => {
+      // Solicitar pantalla completa
+      const docElm = document.documentElement;
+      if (docElm.requestFullscreen) {
+        docElm.requestFullscreen();
+      } else if (docElm.webkitRequestFullscreen) { /* Safari / iOS */
+        docElm.webkitRequestFullscreen();
+      } else if (docElm.msRequestFullscreen) {
+        docElm.msRequestFullscreen();
+      }
+
+      triggerHaptic(30);
+      startOverlay.style.display = 'none';
+    });
+
+    // 2. EVENTOS DE BOTONES
     document.querySelectorAll('[data-btn]').forEach(btn => {
       const name = btn.getAttribute('data-btn');
 
       const press = (e) => {
         e.preventDefault();
+        triggerHaptic(15);
         console.log(`Botón Presionado: ${name}`);
       };
 
@@ -160,7 +222,7 @@
       btn.addEventListener('mouseup', release);
     });
 
-    // 2. LÓGICA JOYSTICK
+    // 3. LÓGICA JOYSTICK
     const base = document.getElementById('joystick-base');
     const stick = document.getElementById('joystick-stick');
     const maxDistance = 32;
@@ -193,7 +255,7 @@
       console.log('Joystick -> X: 0.00, Y: 0.00');
     }
 
-    base.addEventListener('touchstart', (e) => { e.preventDefault(); moveJoystick(e.touches[0].clientX, e.touches[0].clientY); });
+    base.addEventListener('touchstart', (e) => { e.preventDefault(); triggerHaptic(10); moveJoystick(e.touches[0].clientX, e.touches[0].clientY); });
     base.addEventListener('touchmove', (e) => { e.preventDefault(); moveJoystick(e.touches[0].clientX, e.touches[0].clientY); });
     base.addEventListener('touchend', (e) => { e.preventDefault(); resetJoystick(); });
 
